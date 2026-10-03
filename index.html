@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>🍊おさよつ・じなよちゅ基地🍀</title>
+<style>
+:root{--orange:#ef8a35;--pink:#e99ab8;--cream:#fffaf5;--ink:#3d3330;--muted:#8d7c75;--card:#fff;--line:#f0ddd2}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#fff7f1,#fffafd);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif}
+header{padding:22px 18px 12px;position:sticky;top:0;background:#fffaf5ee;backdrop-filter:blur(10px);z-index:5}
+h1{font-size:22px;margin:0 0 4px}.sub{font-size:12px;color:var(--muted)}
+main{padding:8px 14px 90px;max-width:720px;margin:auto}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0 16px}
+.tab{border:1px solid var(--line);background:#fff;border-radius:14px;padding:9px 4px;font-size:12px;color:var(--muted)}
+.tab.active{background:linear-gradient(135deg,#fff0e4,#ffeaf3);color:var(--ink);font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin:10px 0;box-shadow:0 5px 18px #d8bfb320}
+.hero{background:linear-gradient(135deg,#fff0df,#ffeaf3)}
+.hero h2{margin:0 0 8px;font-size:18px}.big{font-size:28px;font-weight:800}
+button,input,select,textarea{font:inherit} button{border:0;border-radius:14px;padding:11px 13px;background:#f7eee9;color:var(--ink);font-weight:700}
+button.primary{background:linear-gradient(135deg,var(--orange),var(--pink));color:white}
+button.small{padding:7px 9px;font-size:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.between{display:flex;justify-content:space-between;gap:10px;align-items:center}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}textarea{min-height:80px;resize:vertical}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pill{display:inline-block;border-radius:999px;padding:5px 8px;font-size:11px;background:#fff1e8;margin:2px}.pill.pink{background:#ffeaf2}.pill.gray{background:#f2eeee}
+.item{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.muted{color:var(--muted);font-size:12px}.title{font-weight:800}.empty{text-align:center;padding:30px 10px;color:var(--muted)}
+nav{position:fixed;bottom:0;left:0;right:0;background:#ffffffee;backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:center;gap:10px;padding:10px 12px env(safe-area-inset-bottom)}
+nav button{flex:1;max-width:150px;font-size:11px;padding:10px 6px}
+.hidden{display:none!important}
+@media(min-width:600px){nav{position:static;border:0;background:transparent;padding:10px 0}main{padding-bottom:20px}.tabs{display:none}}
+</style>
+</head>
+<body>
+<header><h1>🍊おさよつ・じなよちゅ基地🍀</h1><div class="sub">推しの「ここ好き」を、いつでも帰れる場所に。</div></header>
+<main>
+  <div id="view"></div>
+</main>
+<nav>
+  <button onclick="show('home')">🏠 ホーム</button>
+  <button onclick="show('archive')">🎥 アーカイブ</button>
+  <button onclick="show('goods')">🛍️ グッズ</button>
+  <button onclick="show('events')">📅 予定</button>
+  <button onclick="show('x')">🐤 X</button>
+</nav>
+
+<script>
+const KEY='osayotsu-v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'{"archives":[],"goods":[],"events":[],"links":[]}');
+function save(){localStorage.setItem(KEY,JSON.stringify(db));}
+function esc(s=''){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function yt(url,time){try{let u=new URL(url); if(u.hostname.includes('youtube.com')||u.hostname==='youtu.be'){u.searchParams.set('t',Math.floor(time));return u.toString()}}catch{} return url}
+function fmt(sec){sec=Number(sec)||0;let h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=Math.floor(sec%60);return h?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${m}:${String(s).padStart(2,'0')}`;}
+function daysLeft(date){return Math.ceil((new Date(date+'T23:59:59')-new Date())/86400000)}
+function show(page='home'){window.page=page; render()}
+function render(){
+ const v=document.getElementById('view');
+ if(page==='home') return home(v);
+ if(page==='archive') return archive(v);
+ if(page==='goods') return goods(v);
+ if(page==='events') return events(v);
+ if(page==='x') return xTimeline(v);
+}
+function home(v){
+ let all=[]; db.archives.forEach(a=>a.moments.forEach(m=>all.push({...m,a})));
+ let pick=all.length?all[Math.floor(Math.random()*all.length)]:null;
+ let upcoming=[...db.goods.map(x=>({...x,type:'goods'})),...db.events.map(x=>({...x,type:'event'}))].filter(x=>x.date).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
+ v.innerHTML=`<div class="card hero"><h2>🎲 今日の推し場面</h2>${pick?`
+ <div class="muted">${esc(pick.a.pair)} / ${esc(pick.a.title)}</div>
+ <div class="big">⏱ ${fmt(pick.time)}</div>
+ <p>${esc(pick.note)}</p>
+ <div class="row"><span class="pill">${esc(pick.tag||'ここ好き')}</span><a href="${esc(yt(pick.a.url,pick.time))}" target="_blank"><button class="primary">▶ この場面を見る</button></a></div>
+ `:`<div class="empty">まだ「ここ好き」がないよ！<br>アーカイブを登録してみよ🧡🩷</div>`}</div>
+ <div class="grid">
+ <button class="card" onclick="show('archive')">🎥<br>アーカイブ管理</button>
+ <button class="card" onclick="show('goods')">🛍️<br>グッズ期限</button>
+ <button class="card" onclick="show('events')">📅<br>予定・イベント</button>
+ <button class="card" onclick="show('x')">🐤<br>Xタイムライン</button>
+ <div class="card" style="grid-column:1/-1">
+  <div class="between"><b>🍊 おらんじ～な</b><span class="muted">配信先</span></div>
+  <div class="row" style="margin-top:10px">
+    <a href="https://www.youtube.com/@0RaNge117" target="_blank" style="flex:1;text-decoration:none">
+      <button class="primary" style="width:100%">▶ YouTube</button>
+    </a>
+    <a href="https://www.twitch.tv/0RaNge117" target="_blank" style="flex:1;text-decoration:none">
+      <button style="width:100%">🟣 Twitch</button>
+    </a>
+  </div>
+</div>
+ <div class="card" style="grid-column:1/-1">
+  <div class="between"><b>🍀 よちゅ</b><span class="muted">配信先</span></div>
+  <div class="row" style="margin-top:10px">
+    <a href="https://www.youtube.com/channel/UCO2bnzPlCau6YzLoSt8EDdA" target="_blank" style="flex:1;text-decoration:none">
+      <button class="primary" style="width:100%">▶ YouTube</button>
+    </a>
+    <a href="https://www.twitch.tv/yochuco" target="_blank" style="flex:1;text-decoration:none">
+      <button style="width:100%">🟣 Twitch</button>
+    </a>
+  </div>
+</div>
+ </div>
+ <div class="card"><div class="between"><b>📌 近い予定</b><button class="small" onclick="show('events')">一覧</button></div>
+ ${upcoming.length?upcoming.map(x=>`<div class="item"><div class="between"><span class="title">${esc(x.name)}</span><span class="pill ${x.type==='goods'?'pink':''}">${daysLeft(x.date)>=0?'あと'+daysLeft(x.date)+'日': '終了'}</span></div><div class="muted">${x.date}</div></div>`).join(''):'<div class="empty">予定はまだないよ</div>'}</div>`;
+}
+function archive(v){
+ v.innerHTML=`<div class="card"><h2>🎥 アーカイブを追加</h2>
+ <label>タグ</label><select id="pair"><option>🧡🩷おさよつ</option><option>🧡治</option><option>🩷よつは先生</option><option>🍊🍀じなよちゅ</option><option>🍊じな</option><option>🍀よちゅ</option></select>
+ <label>配信タイトル</label><input id="title" placeholder="例：○○配信">
+ <label>YouTube / Twitch URL</label><input id="url" placeholder="https://..." onblur="autoTitle()">
+ <div id="titleHint" class="muted" style="margin-top:6px">YouTubeのURLなら、入力後に配信タイトルを自動取得するよ🧡</div>
+ <button class="primary" style="margin-top:10px" onclick="addArchive()">登録する</button></div>
+ ${db.archives.map((a,i)=>`<div class="card"><div class="between"><div><span class="pill">${esc(a.pair)}</span><div class="title">${esc(a.title)}</div></div><button class="small" onclick="delArchive(${i})">削除</button></div><div class="muted" style="margin-top:5px"><a href="${esc(a.url)}" target="_blank">配信を開く</a> · 好きな場面 ${a.moments.length}件</div>
+ ${a.moments.map((m,j)=>`<div class="item"><div class="between"><b>⏱ ${fmt(m.time)}</b><button class="small" onclick="delMoment(${i},${j})">削除</button></div><div>${esc(m.note)}</div><span class="pill">${esc(m.tag||'ここ好き')}</span> <a href="${esc(yt(a.url,m.time))}" target="_blank"><button class="small">▶ 再生</button></a></div>`).join('')}
+ <button style="margin-top:12px" onclick="addMoment(${i})">＋ ここ好きポイントを追加</button></div>`).join('')||'<div class="empty">アーカイブを登録するとここに並ぶよ！</div>'}`;
+}
+function addArchive(){let a={pair:pair.value,title:title.value.trim(),url:url.value.trim(),moments:[]};if(!a.title||!a.url)return alert('タイトルとURLを入れてね！');db.archives.unshift(a);save();render()}
+function delArchive(i){db.archives.splice(i,1);save();render()}
+function addMoment(i){let t=prompt('何分何秒？ 例：1:23:45');if(t==null)return;let p=t.split(':').map(Number),sec=p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+p[1];let note=prompt('何が好きだった？');if(!note)return;let tag=prompt('タグ（例：甘々 / コント / てぇてぇ）','ここ好き');db.archives[i].moments.push({time:sec,note,tag});save();render()}
+function delMoment(i,j){db.archives[i].moments.splice(j,1);save();render()}
+function goods(v){v.innerHTML=`<div class="card"><h2>🛍️ グッズ期限を追加</h2><label>商品名</label><input id="gname" placeholder="例：おさよつチケット"><label>販売終了日</label><input id="gdate" type="date"><label>URL</label><input id="gurl" placeholder="販売ページ"><button class="primary" style="margin-top:10px" onclick="addGood()">登録する</button></div>${db.goods.map((g,i)=>{let d=daysLeft(g.date);return `<div class="card"><div class="between"><div><div class="title">${esc(g.name)}</div><div class="muted">終了：${g.date}</div></div><span class="pill ${d<=3?'pink':''}">${d>=0?'あと'+d+'日':'終了'}</span></div>${g.url?`<a href="${esc(g.url)}" target="_blank"><button style="margin-top:10px">販売ページを開く</button></a>`:''}<button class="small" style="float:right;margin-top:10px" onclick="db.goods.splice(${i},1);save();render()">削除</button></div>`}).join('')||'<div class="empty">販売期限を登録しておくと安心！</div>'}`}
+function addGood(){if(!gname.value||!gdate.value)return alert('商品名と終了日を入れてね！');db.goods.push({name:gname.value.trim(),date:gdate.value,url:gurl.value.trim()});save();render()}
+function events(v){v.innerHTML=`<div class="card"><h2>📅 予定を追加</h2><label>予定名</label><input id="ename" placeholder="例：救急隊ライブ"><label>日付</label><input id="edate" type="date"><label>URL</label><input id="eurl" placeholder="チケット・配信ページなど"><button class="primary" style="margin-top:10px" onclick="addEvent()">登録する</button></div>${db.events.map((e,i)=>`<div class="card"><div class="between"><div><div class="title">${esc(e.name)}</div><div class="muted">${e.date}</div></div><button class="small" onclick="db.events.splice(${i},1);save();render()">削除</button></div>${e.url?`<a href="${esc(e.url)}" target="_blank"><button style="margin-top:10px">ページを開く</button></a>`:''}</div>`).join('')||'<div class="empty">ライブや配信予定を登録しよ！</div>'}`}
+function addEvent(){if(!ename.value||!edate.value)return alert('予定名と日付を入れてね！');db.events.push({name:ename.value.trim(),date:edate.value,url:eurl.value.trim()});save();render()}
+async function autoTitle(){
+ const u=(url.value||'').trim();
+ if(!u)return;
+ let ytId=null;
+ try{
+  const x=new URL(u);
+  if(x.hostname==='youtu.be') ytId=x.pathname.slice(1).split('/')[0];
+  else if(x.hostname.includes('youtube.com')){
+   if(x.searchParams.get('v')) ytId=x.searchParams.get('v');
+   else {const m=x.pathname.match(/\/(?:live|shorts|embed)\/([^/?]+)/); if(m)ytId=m[1];}
+  }
+ }catch{}
+ if(!ytId)return;
+ const hint=document.getElementById('titleHint');
+ if(hint)hint.textContent='配信タイトルを取得中…📝';
+ try{
+  const r=await fetch('https://www.youtube.com/oembed?url='+encodeURIComponent(u)+'&format=json');
+  if(!r.ok)throw new Error();
+  const d=await r.json();
+  if(d.title && !title.value.trim()) title.value=d.title;
+  if(hint)hint.textContent='YouTubeの配信タイトルを自動入力したよ✨';
+ }catch{
+  if(hint)hint.textContent='タイトルを自動取得できなかったので、必要なら手入力してね🙏';
+ }
+}
+function xTimeline(v){
+ v.innerHTML=`<div class="card hero"><h2>🐤 Xタイムライン</h2><p class="muted">おらんじ～な🍊とよつは先生🍀のメイン・サブをまとめて見るところ！</p></div>
+ <div class="card"><h3 style="margin-top:0">🍊 おらんじ～な メイン</h3><a class="twitter-timeline" data-height="420" href="https://x.com/0RaNge117">@0RaNge117</a></div>
+ <div class="card"><h3 style="margin-top:0">🍊 じなちゃ サブ</h3><a class="twitter-timeline" data-height="420" href="https://x.com/senpanorange">@senpanorange</a></div>
+ <div class="card"><h3 style="margin-top:0">🍀 天羽よつは メイン</h3><a class="twitter-timeline" data-height="420" href="https://x.com/amahane428">@amahane428</a></div>
+ <div class="card"><h3 style="margin-top:0">🍀 よっちゃん サブ</h3><a class="twitter-timeline" data-height="420" href="https://x.com/yochuco">@yochuco</a></div>`;
+ if(window.twttr?.widgets){window.twttr.widgets.load(v);}
+}
+function quickLink(){let u=prompt('YouTube / TwitchのURLを貼ってね');if(u)window.open(u,'_blank')}
+show('home');
+</script>
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+</body>
+</html>
